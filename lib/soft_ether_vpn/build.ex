@@ -81,8 +81,8 @@ defmodule SoftEtherVpn.Build do
 
   def copy_to_priv(type) do
     ~w"#{type} vpncmd hamcore.se2 ReadMeFirst_License.txt"
-    |> Enum.map(fn target ->
-      [cmd | args] = ~w"cp -f #{Path.join(src_path(type), target)} #{priv_path(type)}"
+    |> Enum.map(fn file ->
+      [cmd | args] = ~w"cp -f #{Path.join(src_path(type), file)} #{priv_path(type)}"
       {_, 0} = System.cmd(cmd, args)
     end)
   end
