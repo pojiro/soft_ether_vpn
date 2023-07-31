@@ -134,5 +134,3 @@ defmodule SoftEtherVpn do
     end
   end
 end
-
-SoftEtherVpn.builds()
