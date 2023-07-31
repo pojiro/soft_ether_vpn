@@ -5,15 +5,19 @@ defmodule SoftEtherVpn do
 
   require Logger
 
-  def build() do
-    if not File.exists?(file_path()), do: download()
-    uncompress()
-    modify_makefile()
-    make()
-    copy_to_priv()
+  def builds() do
+    for type <- types(), do: build(type)
   end
 
-  def download() do
+  def build(type) do
+    if not File.exists?(file_path(type)), do: download(type)
+    uncompress(type)
+    modify_makefile(type)
+    make(type)
+    copy_to_priv(type)
+  end
+
+  def download(type) do
     {:ok, _} = Application.ensure_all_started(:inets)
     {:ok, _} = Application.ensure_all_started(:ssl)
 
@@ -32,31 +36,33 @@ defmodule SoftEtherVpn do
 
     options = [body_format: :binary]
 
-    Logger.debug("Downloading SoftEtherVPN from #{url()}")
+    url = url(type)
+
+    Logger.debug("Downloading SoftEtherVPN from #{url}")
 
     binary =
-      case :httpc.request(:get, {url(), []}, http_options, options) do
+      case :httpc.request(:get, {url, []}, http_options, options) do
         {:ok, {{_, 200, _}, _headers, body}} ->
           body
 
         other ->
           raise """
-          Couldn't fetch #{url()}: #{inspect(other)}
+          Couldn't fetch #{url}: #{inspect(other)}
           """
       end
 
-    File.write!(file_path(), binary, [:binary, :sync])
+    File.write!(file_path(type), binary, [:binary, :sync])
   end
 
-  def uncompress() do
+  def uncompress(type) do
     [cmd | args] =
-      ~w"tar -xz --file #{file_path()} --directory #{src_path()} --strip-components 1"
+      ~w"tar -xz --file #{file_path(type)} --directory #{src_path(type)} --strip-components 1"
 
     {_, 0} = System.cmd(cmd, args)
   end
 
-  def modify_makefile() do
-    makefile_path = Path.join(src_path(), "Makefile")
+  def modify_makefile(type) do
+    makefile_path = Path.join(src_path(type), "Makefile")
 
     File.read!(makefile_path)
     |> String.split("\n")
@@ -66,29 +72,29 @@ defmodule SoftEtherVpn do
     |> then(&File.write!(makefile_path, &1))
   end
 
-  def make() do
-    [cmd | args] = ~w"make --directory #{src_path()} main"
+  def make(type) do
+    [cmd | args] = ~w"make --directory #{src_path(type)} main"
     {_, 0} = System.cmd(cmd, args)
   end
 
-  def copy_to_priv() do
-    ~w"#{type()} vpncmd hamcore.se2 ReadMeFirst_License.txt"
+  def copy_to_priv(type) do
+    ~w"#{type} vpncmd hamcore.se2 ReadMeFirst_License.txt"
     |> Enum.map(fn target ->
-      [cmd | args] = ~w"cp -f #{Path.join(src_path(), target)} #{priv_path()}"
+      [cmd | args] = ~w"cp -f #{Path.join(src_path(type), target)} #{priv_path(type)}"
       {_, 0} = System.cmd(cmd, args)
     end)
   end
 
-  defp file_path() do
-    "tmp" |> tap(&File.mkdir_p!/1) |> Path.join(file_name())
+  defp file_path(type) do
+    "tmp" |> tap(&File.mkdir_p!/1) |> Path.join(file_name(type))
   end
 
-  defp src_path() do
-    Path.join("src", type()) |> tap(&File.mkdir_p!/1)
+  defp src_path(type) do
+    Path.join("src", type) |> tap(&File.mkdir_p!/1)
   end
 
-  defp priv_path() do
-    Path.join("priv", type()) |> tap(&File.mkdir_p!/1)
+  defp priv_path(type) do
+    Path.join("priv", type) |> tap(&File.mkdir_p!/1)
   end
 
   defp protocol_versions do
@@ -99,16 +105,16 @@ defmodule SoftEtherVpn do
     :erlang.system_info(:otp_release) |> List.to_integer()
   end
 
-  defp url() do
-    "https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/#{version()}/#{file_name()}"
+  defp url(type) do
+    "https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/#{version()}/#{file_name(type)}"
   end
 
-  defp file_name() do
-    "softether-#{type()}-#{version()}-#{release_date()}-#{target()}.tar.gz"
+  defp file_name(type) do
+    "softether-#{type}-#{version()}-#{release_date()}-#{target()}.tar.gz"
   end
 
-  defp type() do
-    Application.fetch_env!(:soft_ether_vpn, :type)
+  defp types() do
+    Application.fetch_env!(:soft_ether_vpn, :types)
   end
 
   defp version() do
@@ -129,4 +135,4 @@ defmodule SoftEtherVpn do
   end
 end
 
-SoftEtherVpn.build()
+SoftEtherVpn.builds()
