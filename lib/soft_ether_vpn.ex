@@ -5,18 +5,19 @@ defmodule SoftEtherVpn do
 
   require Logger
 
-  def prepare_make() do
+  def build() do
     file_path = download()
     uncompress(file_path)
-    modify_makefile(source_path())
+    modify_makefile()
+    make()
+    copy_to_priv()
   end
 
   def download() do
     url =
       "https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/#{version()}/softether-#{type()}-#{version()}-#{release_date()}-#{target()}.tar.gz"
 
-    File.mkdir_p!("tmp")
-    tar_gz_path = Path.join("tmp", Path.basename(URI.parse(url).path))
+    tar_gz_path = Path.join(tmp_path(), Path.basename(URI.parse(url).path))
 
     # if not File.exists?(tar_gz_path) do
     {:ok, _} = Application.ensure_all_started(:inets)
@@ -57,12 +58,12 @@ defmodule SoftEtherVpn do
   end
 
   def uncompress(file_path) do
-    [cmd | args] = ~w"tar -xz --file #{file_path} --directory src/ --strip-components 1"
+    [cmd | args] = ~w"tar -xz --file #{file_path} --directory #{src_path()} --strip-components 1"
     {_, 0} = System.cmd(cmd, args)
   end
 
-  def modify_makefile(source_path) do
-    makefile_path = Path.join(source_path, "Makefile")
+  def modify_makefile() do
+    makefile_path = Path.join(src_path(), "Makefile")
 
     File.read!(makefile_path)
     |> String.split("\n")
@@ -72,8 +73,29 @@ defmodule SoftEtherVpn do
     |> then(&File.write!(makefile_path, &1))
   end
 
-  defp source_path() do
-    "src"
+  def make() do
+    [cmd | args] = ~w"make --directory #{src_path()} main"
+    {_, 0} = System.cmd(cmd, args)
+  end
+
+  def copy_to_priv() do
+    ~w"#{type()} vpncmd hamcore.se2 ReadMeFirst_License.txt"
+    |> Enum.map(fn target ->
+      [cmd | args] = ~w"cp -f #{Path.join(src_path(), target)} #{priv_path()}"
+      {_, 0} = System.cmd(cmd, args)
+    end)
+  end
+
+  defp tmp_path() do
+    "tmp" |> tap(&File.mkdir_p!/1)
+  end
+
+  defp src_path() do
+    Path.join("src", type()) |> tap(&File.mkdir_p!/1)
+  end
+
+  defp priv_path() do
+    Path.join("priv", type()) |> tap(&File.mkdir_p!/1)
   end
 
   defp protocol_versions do
@@ -106,4 +128,4 @@ defmodule SoftEtherVpn do
   end
 end
 
-SoftEtherVpn.prepare_make()
+SoftEtherVpn.build()
