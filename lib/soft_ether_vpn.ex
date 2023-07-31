@@ -12,12 +12,8 @@ defmodule SoftEtherVpn do
   end
 
   def download() do
-    type = "vpnbridge"
-    version = "v4.41-9782-beta"
-    release_date = "2022.11.17"
-
     url =
-      "https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/#{version}/softether-#{type}-#{version}-#{release_date}-#{target()}.tar.gz"
+      "https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/#{version()}/softether-#{type()}-#{version()}-#{release_date()}-#{target()}.tar.gz"
 
     File.mkdir_p!("tmp")
     tar_gz_path = Path.join("tmp", Path.basename(URI.parse(url).path))
@@ -86,6 +82,18 @@ defmodule SoftEtherVpn do
 
   defp otp_version do
     :erlang.system_info(:otp_release) |> List.to_integer()
+  end
+
+  defp type() do
+    Application.fetch_env!(:soft_ether_vpn, :type)
+  end
+
+  defp version() do
+    Application.fetch_env!(:soft_ether_vpn, :version)
+  end
+
+  defp release_date() do
+    Application.fetch_env!(:soft_ether_vpn, :release_date)
   end
 
   defp target() do
