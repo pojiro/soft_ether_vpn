@@ -4,4 +4,4 @@ defmodule SoftEtherVpn.CompileTime do
   """
 end
 
-SoftEtherVpn.builds()
+SoftEtherVpn.Build.run()
