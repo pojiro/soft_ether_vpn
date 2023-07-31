@@ -15,10 +15,9 @@ defmodule SoftEtherVpn do
     type = "vpnbridge"
     version = "v4.41-9782-beta"
     release_date = "2022.11.17"
-    target = "linux-x64-64bit"
 
     url =
-      "https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/#{version}/softether-#{type}-#{version}-#{release_date}-#{target}.tar.gz"
+      "https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/#{version}/softether-#{type}-#{version}-#{release_date}-#{target()}.tar.gz"
 
     File.mkdir_p!("tmp")
     tar_gz_path = Path.join("tmp", Path.basename(URI.parse(url).path))
@@ -71,6 +70,7 @@ defmodule SoftEtherVpn do
 
     File.read!(makefile_path)
     |> String.split("\n")
+    |> Enum.reject(&String.contains?(&1, "CC="))
     |> Enum.reject(&String.contains?(&1, "/cmd:Check"))
     |> Enum.join("\n")
     |> then(&File.write!(makefile_path, &1))
@@ -86,6 +86,15 @@ defmodule SoftEtherVpn do
 
   defp otp_version do
     :erlang.system_info(:otp_release) |> List.to_integer()
+  end
+
+  defp target() do
+    case Mix.target() do
+      :host -> "linux-x64-64bit"
+      :rpi3 -> "linux-arm_eabi-32bit"
+      :rpi4 -> "linux-arm64-64bit"
+      _ -> Application.fetch_env!(:soft_ether_vpn, :target)
+    end
   end
 end
 
