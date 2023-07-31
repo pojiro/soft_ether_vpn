@@ -6,20 +6,14 @@ defmodule SoftEtherVpn do
   require Logger
 
   def build() do
-    file_path = download()
-    uncompress(file_path)
+    if not File.exists?(file_path()), do: download()
+    uncompress()
     modify_makefile()
     make()
     copy_to_priv()
   end
 
   def download() do
-    url =
-      "https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/#{version()}/softether-#{type()}-#{version()}-#{release_date()}-#{target()}.tar.gz"
-
-    tar_gz_path = Path.join(tmp_path(), Path.basename(URI.parse(url).path))
-
-    # if not File.exists?(tar_gz_path) do
     {:ok, _} = Application.ensure_all_started(:inets)
     {:ok, _} = Application.ensure_all_started(:ssl)
 
@@ -38,27 +32,26 @@ defmodule SoftEtherVpn do
 
     options = [body_format: :binary]
 
-    Logger.debug("Downloading SoftEtherVPN from #{url}")
+    Logger.debug("Downloading SoftEtherVPN from #{url()}")
 
-    tar_gz =
-      case :httpc.request(:get, {url, []}, http_options, options) do
+    binary =
+      case :httpc.request(:get, {url(), []}, http_options, options) do
         {:ok, {{_, 200, _}, _headers, body}} ->
           body
 
         other ->
           raise """
-          Couldn't fetch #{url}: #{inspect(other)}
+          Couldn't fetch #{url()}: #{inspect(other)}
           """
       end
 
-    File.write!(tar_gz_path, tar_gz, [:binary, :sync])
-    # end
-
-    tar_gz_path
+    File.write!(file_path(), binary, [:binary, :sync])
   end
 
-  def uncompress(file_path) do
-    [cmd | args] = ~w"tar -xz --file #{file_path} --directory #{src_path()} --strip-components 1"
+  def uncompress() do
+    [cmd | args] =
+      ~w"tar -xz --file #{file_path()} --directory #{src_path()} --strip-components 1"
+
     {_, 0} = System.cmd(cmd, args)
   end
 
@@ -86,8 +79,8 @@ defmodule SoftEtherVpn do
     end)
   end
 
-  defp tmp_path() do
-    "tmp" |> tap(&File.mkdir_p!/1)
+  defp file_path() do
+    "tmp" |> tap(&File.mkdir_p!/1) |> Path.join(file_name())
   end
 
   defp src_path() do
@@ -104,6 +97,14 @@ defmodule SoftEtherVpn do
 
   defp otp_version do
     :erlang.system_info(:otp_release) |> List.to_integer()
+  end
+
+  defp url() do
+    "https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/#{version()}/#{file_name()}"
+  end
+
+  defp file_name() do
+    "softether-#{type()}-#{version()}-#{release_date()}-#{target()}.tar.gz"
   end
 
   defp type() do
