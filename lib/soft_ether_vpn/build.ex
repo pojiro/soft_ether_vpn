@@ -6,7 +6,10 @@ defmodule SoftEtherVpn.Build do
   require Logger
 
   def run() do
-    for type <- types(), do: build(type)
+    for type <- types() do
+      clean(type)
+      build(type)
+    end
   end
 
   def build(type) do
@@ -52,6 +55,11 @@ defmodule SoftEtherVpn.Build do
       end
 
     File.write!(file_path(type), binary, [:binary, :sync])
+  end
+
+  def clean(type) do
+    [cmd | args] = ~w"rm -rf #{src_path(type)} #{priv_path(type)}"
+    {_, 0} = System.cmd(cmd, args)
   end
 
   def uncompress(type) do
