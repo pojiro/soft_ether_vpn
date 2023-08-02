@@ -21,7 +21,8 @@ defmodule SoftEtherVpn.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:castore, "~> 0.1 or ~> 1.0"}
+      {:castore, "~> 0.1 or ~> 1.0"},
+      {:muontrap, "~> 1.0"}
     ]
   end
 end
