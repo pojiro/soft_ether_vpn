@@ -1,8 +1,21 @@
 defmodule SoftEtherVpn.Client do
+  @moduledoc false
+
   use GenServer
 
   # api
 
+  @doc """
+  ## Arguments
+
+    - `dir_path` - path for execute directory of vpnclient, default: priv
+
+  ### for custom.ini
+
+    - `no_save_log` - default: false
+    - `no_save_config` - default: false
+    - `config_file_path` - default: `dir_path`/vpn_client.config
+  """
   def start_link(args) do
     name = Keyword.get(args, :name, __MODULE__)
     GenServer.start_link(__MODULE__, args, name: name)
@@ -119,7 +132,9 @@ defmodule SoftEtherVpn.Client do
       if Keyword.get(args, :no_save_config, false), do: "NoSaveConfig true\n", else: ""
 
     config_path =
-      if path = Keyword.get(args, :config_file_path, false), do: "ConfigPath #{path}\n", else: ""
+      if path = Keyword.get(args, :config_file_path, false),
+        do: "ConfigPath #{Path.absname(path)}\n",
+        else: ""
 
     binary = no_save_log <> no_save_config <> config_path
 
