@@ -23,14 +23,7 @@ defmodule SoftEtherVpn.Client do
   def init(args) do
     Process.flag(:trap_exit, true)
 
-    dir_path = Keyword.get(args, :dir_path, client_dir_path())
-
-    if not File.exists?(Path.join(dir_path, "vpnclient")) do
-      File.mkdir_p!(dir_path)
-
-      ~w"ReadMeFirst_License.txt hamcore.se2 vpnclient vpncmd"
-      |> Enum.each(&File.cp!(Path.join(client_dir_path(), &1), Path.join(dir_path, &1)))
-    end
+    dir_path = prepare_execute_dir(args)
 
     state =
       %State{
@@ -97,6 +90,39 @@ defmodule SoftEtherVpn.Client do
   end
 
   # privates
+
+  defp prepare_execute_dir(args) do
+    Keyword.get(args, :dir_path, client_dir_path())
+    |> tap(fn dir_path ->
+      if not File.exists?(Path.join(dir_path, "vpnclient")) do
+        File.mkdir_p!(dir_path)
+
+        ~w"ReadMeFirst_License.txt hamcore.se2 vpnclient vpncmd"
+        |> Enum.each(&File.cp!(Path.join(client_dir_path(), &1), Path.join(dir_path, &1)))
+      end
+
+      prepare_custom_ini(args)
+    end)
+  end
+
+  defp prepare_custom_ini(args) do
+    dir_path = Keyword.get(args, :dir_path, client_dir_path())
+
+    no_save_log =
+      if Keyword.get(args, :no_save_log, false), do: "NoSaveLog true\n", else: ""
+
+    no_save_config =
+      if Keyword.get(args, :no_save_config, false), do: "NoSaveConfig true\n", else: ""
+
+    config_path =
+      if path = Keyword.get(args, :config_file_path, false), do: "ConfigPath #{path}\n", else: ""
+
+    binary = no_save_log <> no_save_config <> config_path
+
+    if binary != "" do
+      File.write!(Path.join(dir_path, "custom.ini"), binary, [:sync])
+    end
+  end
 
   defp client_dir_path() do
     Path.join([SoftEtherVpn.priv_path(), "vpnclient"])
