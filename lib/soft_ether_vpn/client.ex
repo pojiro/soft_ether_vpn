@@ -93,6 +93,7 @@ defmodule SoftEtherVpn.Client do
 
   defp prepare_execute_dir(args) do
     Keyword.get(args, :dir_path, client_dir_path())
+    |> Path.absname()
     |> tap(fn dir_path ->
       if not File.exists?(Path.join(dir_path, "vpnclient")) do
         File.mkdir_p!(dir_path)
@@ -101,13 +102,11 @@ defmodule SoftEtherVpn.Client do
         |> Enum.each(&File.cp!(Path.join(client_dir_path(), &1), Path.join(dir_path, &1)))
       end
 
-      prepare_custom_ini(args)
+      prepare_custom_ini(dir_path, args)
     end)
   end
 
-  defp prepare_custom_ini(args) do
-    dir_path = Keyword.get(args, :dir_path, client_dir_path())
-
+  defp prepare_custom_ini(dir_path, args) do
     no_save_log =
       if Keyword.get(args, :no_save_log, false), do: "NoSaveLog true\n", else: ""
 
