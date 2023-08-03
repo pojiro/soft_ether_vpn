@@ -12,13 +12,13 @@ defmodule SoftEtherVpn.ClientTest do
       %{pid: pid}
     end
 
-    test "stop/0" do
-      assert String.contains?(Client.stop(), "stopped")
+    test "stop_vpnclient/0" do
+      assert String.contains?(Client.stop_vpnclient(), "stopped")
     end
 
-    test "stop/0 then start/0" do
-      assert String.contains?(Client.stop(), "stopped")
-      assert String.contains?(Client.start(), "started")
+    test "stop_vpnclient/0 then start_vpnclient/0" do
+      assert String.contains?(Client.stop_vpnclient(), "stopped")
+      assert String.contains?(Client.start_vpnclient(), "started")
     end
 
     for f <- ["get_version", "list_account", "enable_remote", "disable_remote"] do
@@ -40,7 +40,7 @@ defmodule SoftEtherVpn.ClientTest do
       start_supervised!({Client, dir_path: execute_dir_path, no_save_log: false})
       assert not File.exists?(Path.join(execute_dir_path, "custom.ini"))
 
-      Client.stop()
+      Client.stop_vpnclient()
       assert File.exists?(Path.join(execute_dir_path, "client_log"))
     end
 
@@ -50,7 +50,7 @@ defmodule SoftEtherVpn.ClientTest do
       start_supervised!({Client, dir_path: execute_dir_path, no_save_log: true})
       assert File.exists?(Path.join(execute_dir_path, "custom.ini"))
 
-      Client.stop()
+      Client.stop_vpnclient()
       assert not File.exists?(Path.join(execute_dir_path, "client_log"))
     end
   end
@@ -62,7 +62,7 @@ defmodule SoftEtherVpn.ClientTest do
       start_supervised!({Client, dir_path: execute_dir_path, no_save_config: false})
       assert not File.exists?(Path.join(execute_dir_path, "custom.ini"))
 
-      Client.stop()
+      Client.stop_vpnclient()
       assert File.exists?(Path.join(execute_dir_path, "backup.vpn_client.config"))
     end
 
@@ -72,7 +72,7 @@ defmodule SoftEtherVpn.ClientTest do
       start_supervised!({Client, dir_path: execute_dir_path, no_save_config: true})
       assert File.exists?(Path.join(execute_dir_path, "custom.ini"))
 
-      Client.stop()
+      Client.stop_vpnclient()
       assert not File.exists?(Path.join(execute_dir_path, "backup.vpn_client.config"))
     end
   end
@@ -86,7 +86,7 @@ defmodule SoftEtherVpn.ClientTest do
 
     assert File.exists?(Path.join(execute_dir_path, "custom.ini"))
 
-    Client.stop()
+    Client.stop_vpnclient()
     assert not File.exists?(Path.join(execute_dir_path, "client_log"))
     assert not File.exists?(Path.join(execute_dir_path, "backup.vpn_client.config"))
   end

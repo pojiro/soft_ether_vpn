@@ -9,8 +9,8 @@ defmodule SoftEtherVpn.Client do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def start(), do: GenServer.call(__MODULE__, :start)
-  def stop(), do: GenServer.call(__MODULE__, :stop)
+  def start_vpnclient(), do: GenServer.call(__MODULE__, :start)
+  def stop_vpnclient(), do: GenServer.call(__MODULE__, :stop)
   def get_version(), do: GenServer.call(__MODULE__, :get_version)
   def list_account(), do: GenServer.call(__MODULE__, :list_account)
   def get_account_status(name), do: GenServer.call(__MODULE__, {:get_account_status, name})
