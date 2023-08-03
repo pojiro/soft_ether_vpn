@@ -14,14 +14,16 @@ defmodule SoftEtherVpn.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, inets: :optional, ssl: :optional]
+      extra_applications: [:logger, inets: :optional, ssl: :optional],
+      mod: {SoftEtherVpn, []}
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:castore, "~> 0.1 or ~> 1.0"}
+      {:castore, "~> 0.1 or ~> 1.0"},
+      {:muontrap, "~> 1.0"}
     ]
   end
 end
