@@ -1,12 +1,11 @@
 defmodule SoftEtherVpn.Client do
   use GenServer
 
-  defmodule State do
-    defstruct dir_path: "", bin_path: "", cmd_path: ""
-  end
+  # api
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+    name = Keyword.get(args, :name, __MODULE__)
+    GenServer.start_link(__MODULE__, args, name: name)
   end
 
   def start_vpnclient(), do: GenServer.call(__MODULE__, :start)
@@ -16,6 +15,12 @@ defmodule SoftEtherVpn.Client do
   def get_account_status(name), do: GenServer.call(__MODULE__, {:get_account_status, name})
   def enable_remote(), do: GenServer.call(__MODULE__, :enable_remote)
   def disable_remote(), do: GenServer.call(__MODULE__, :disable_remote)
+
+  # state
+
+  defmodule State do
+    defstruct dir_path: "", bin_path: "", cmd_path: ""
+  end
 
   # callbacks
 
