@@ -1,34 +1,33 @@
 defmodule SoftEtherVpn.ClientTest do
   use ExUnit.Case
 
+  @moduletag :tmp_dir
+
   alias SoftEtherVpn.Client
 
-  setup do
-    pid = start_supervised!(Client)
+  setup %{tmp_dir: tmp_dir} do
+    pid = start_supervised!({Client, dir_path: Path.join(tmp_dir, "vpnclient")})
+
     %{pid: pid}
   end
 
   test "stop/0" do
-    Client.stop()
+    assert String.contains?(Client.stop(), "stopped")
   end
 
   test "stop/0 then start/0" do
-    Client.stop()
-    Client.start()
+    assert String.contains?(Client.stop(), "stopped")
+    assert String.contains?(Client.start(), "started")
   end
 
   for f <- ["get_version", "list_account", "enable_remote", "disable_remote"] do
-    test "#{f}/0" do
-      wait_port_available(30)
+    test "#{f}/0 available" do
       apply(Client, :"#{unquote(f)}", [])
     end
   end
 
   @tag :skip
   test "get_account_status/1" do
-    wait_port_available(30)
     Client.get_account_status("test")
   end
-
-  defdelegate wait_port_available(msec), to: Process, as: :sleep
 end

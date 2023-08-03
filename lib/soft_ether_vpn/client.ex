@@ -2,7 +2,7 @@ defmodule SoftEtherVpn.Client do
   use GenServer
 
   defmodule State do
-    defstruct cd: SoftEtherVpn.priv_path()
+    defstruct dir_path: "", bin_path: "", cmd_path: ""
   end
 
   def start_link(args) do
@@ -23,17 +23,30 @@ defmodule SoftEtherVpn.Client do
   def init(args) do
     Process.flag(:trap_exit, true)
 
-    cd = Keyword.get(args, :cd, SoftEtherVpn.priv_path())
-    state = %State{cd: cd}
+    dir_path = Keyword.get(args, :dir_path, client_dir_path())
 
-    vpnclient!("start", cd: state.cd)
+    if not File.exists?(Path.join(dir_path, "vpnclient")) do
+      File.mkdir_p!(dir_path)
+
+      ~w"ReadMeFirst_License.txt hamcore.se2 vpnclient vpncmd"
+      |> Enum.each(&File.cp!(Path.join(client_dir_path(), &1), Path.join(dir_path, &1)))
+    end
+
+    state =
+      %State{
+        dir_path: dir_path,
+        bin_path: Path.join(dir_path, "vpnclient"),
+        cmd_path: Path.join(dir_path, "vpncmd")
+      }
+
+    vpnclient!(state.bin_path, "start")
 
     {:ok, state}
   end
 
   @impl true
   def terminate(_reason, state) do
-    vpnclient("stop", cd: state.cd)
+    vpnclient(state.bin_path, "stop")
   end
 
   @impl true
@@ -43,65 +56,70 @@ defmodule SoftEtherVpn.Client do
 
   @impl true
   def handle_call(:start, _from, state) do
-    ret = vpnclient!("start", cd: state.cd)
+    ret = vpnclient!(state.bin_path, "start")
     {:reply, ret, state}
   end
 
   @impl true
   def handle_call(:stop, _from, state) do
-    ret = vpnclient!("stop", cd: state.cd)
+    ret = vpnclient!(state.bin_path, "stop")
     {:reply, ret, state}
   end
 
   @impl true
   def handle_call(:get_version, _from, state) do
-    ret = vpncmd!("VersionGet", cd: state.cd)
+    ret = vpncmd!(state.cmd_path, "VersionGet")
     {:reply, ret, state}
   end
 
   @impl true
   def handle_call(:list_account, _from, state) do
-    ret = vpncmd!("AccountList", cd: state.cd)
+    ret = vpncmd!(state.cmd_path, "AccountList")
     {:reply, ret, state}
   end
 
   @impl true
   def handle_call({:get_account_status, name}, _from, state) do
-    ret = vpncmd!("AccountStatusGet #{name}", cd: state.cd)
+    ret = vpncmd!(state.cmd_path, "AccountStatusGet #{name}")
     {:reply, ret, state}
   end
 
   @impl true
   def handle_call(:enable_remote, _from, state) do
-    ret = vpncmd!("RemoteEnable", cd: state.cd)
+    ret = vpncmd!(state.cmd_path, "RemoteEnable")
     {:reply, ret, state}
   end
 
   @impl true
   def handle_call(:disable_remote, _from, state) do
-    ret = vpncmd!("RemoteDisable", cd: state.cd)
+    ret = vpncmd!(state.cmd_path, "RemoteDisable")
     {:reply, ret, state}
   end
 
   # privates
 
-  defp vpnclient(args, opts) do
-    bin_path = Path.join(SoftEtherVpn.client_dir_path(), "vpnclient")
-    MuonTrap.cmd(bin_path, ~w"#{args}", opts)
+  defp client_dir_path() do
+    Path.join([SoftEtherVpn.priv_path(), "vpnclient"])
   end
 
-  defp vpnclient!(args, opts) do
-    {collectable, 0} = vpnclient(args, opts)
+  defp vpnclient(bin_path, args, opts \\ []) do
+    MuonTrap.cmd(bin_path, ~w"#{args}", opts)
+    # WHY: use Process.sleep/1
+    # vpnclient は値が返ることが処理完了を意味しないので 100 msec 待つ
+    |> tap(fn _ -> Process.sleep(100) end)
+  end
+
+  defp vpnclient!(bin_path, args, opts \\ []) do
+    {collectable, 0} = vpnclient(bin_path, args, opts)
     collectable
   end
 
-  defp vpncmd(args, opts) do
-    bin_path = Path.join(SoftEtherVpn.client_dir_path(), "vpncmd")
+  defp vpncmd(bin_path, args, opts) do
     MuonTrap.cmd(bin_path, ~w"/client localhost /cmd #{args}", opts)
   end
 
-  defp vpncmd!(args, opts) do
-    {collectable, 0} = vpncmd(args, opts)
+  defp vpncmd!(bin_path, args, opts \\ []) do
+    {collectable, 0} = vpncmd(bin_path, args, opts)
     collectable
   end
 end
