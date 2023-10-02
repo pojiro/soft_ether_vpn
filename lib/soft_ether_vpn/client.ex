@@ -23,11 +23,7 @@ defmodule SoftEtherVpn.Client do
 
   def start_vpnclient(), do: GenServer.call(__MODULE__, :start)
   def stop_vpnclient(), do: GenServer.call(__MODULE__, :stop)
-  def get_version(), do: GenServer.call(__MODULE__, :get_version)
-  def list_account(), do: GenServer.call(__MODULE__, :list_account)
-  def get_account_status(name), do: GenServer.call(__MODULE__, {:get_account_status, name})
-  def enable_remote(), do: GenServer.call(__MODULE__, :enable_remote)
-  def disable_remote(), do: GenServer.call(__MODULE__, :disable_remote)
+  def do_command(command), do: GenServer.call(__MODULE__, {:do, command})
 
   # state
 
@@ -51,7 +47,7 @@ defmodule SoftEtherVpn.Client do
         cmd_path: Path.join(dir_path, "vpncmd")
       }
 
-    vpnclient!(state.bin_path, "start")
+    vpnclient(state.bin_path, "start")
 
     {:ok, state}
   end
@@ -68,44 +64,26 @@ defmodule SoftEtherVpn.Client do
 
   @impl true
   def handle_call(:start, _from, state) do
-    ret = vpnclient!(state.bin_path, "start")
-    {:reply, ret, state}
+    case vpnclient(state.bin_path, "start") do
+      {collectable, 0} -> {:reply, {:ok, collectable}, state}
+      {collectable, _} -> {:reply, {:error, collectable}, state}
+    end
   end
 
   @impl true
   def handle_call(:stop, _from, state) do
-    ret = vpnclient!(state.bin_path, "stop")
-    {:reply, ret, state}
+    case vpnclient(state.bin_path, "stop") do
+      {collectable, 0} -> {:reply, {:ok, collectable}, state}
+      {collectable, _} -> {:reply, {:error, collectable}, state}
+    end
   end
 
   @impl true
-  def handle_call(:get_version, _from, state) do
-    ret = vpncmd!(state.cmd_path, "VersionGet")
-    {:reply, ret, state}
-  end
-
-  @impl true
-  def handle_call(:list_account, _from, state) do
-    ret = vpncmd!(state.cmd_path, "AccountList")
-    {:reply, ret, state}
-  end
-
-  @impl true
-  def handle_call({:get_account_status, name}, _from, state) do
-    ret = vpncmd!(state.cmd_path, "AccountStatusGet #{name}")
-    {:reply, ret, state}
-  end
-
-  @impl true
-  def handle_call(:enable_remote, _from, state) do
-    ret = vpncmd!(state.cmd_path, "RemoteEnable")
-    {:reply, ret, state}
-  end
-
-  @impl true
-  def handle_call(:disable_remote, _from, state) do
-    ret = vpncmd!(state.cmd_path, "RemoteDisable")
-    {:reply, ret, state}
+  def handle_call({:do, command}, _from, state) do
+    case vpncmd(state.cmd_path, command) do
+      {collectable, 0} -> {:reply, {:ok, collectable}, state}
+      {collectable, _} -> {:reply, {:error, collectable}, state}
+    end
   end
 
   # privates
@@ -155,17 +133,7 @@ defmodule SoftEtherVpn.Client do
     |> tap(fn _ -> Process.sleep(100) end)
   end
 
-  defp vpnclient!(bin_path, args, opts \\ []) do
-    {collectable, 0} = vpnclient(bin_path, args, opts)
-    collectable
-  end
-
-  defp vpncmd(bin_path, args, opts) do
-    MuonTrap.cmd(bin_path, ~w"/client localhost /cmd #{args}", opts)
-  end
-
-  defp vpncmd!(bin_path, args, opts \\ []) do
-    {collectable, 0} = vpncmd(bin_path, args, opts)
-    collectable
+  defp vpncmd(bin_path, args, opts \\ []) do
+    MuonTrap.cmd(bin_path, ~w"localhost /client /cmd #{args}", opts)
   end
 end
