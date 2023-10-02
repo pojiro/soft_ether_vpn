@@ -1,0 +1,39 @@
+env:
+  OTP_VERSION: 26.0.2
+  ELIXIR_VERSION: 1.15.6
+
+# based https://github.com/erlef/setup-beam
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      MIX_ENV: test
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{env.OTP_VERSION}}
+          elixir-version: ${{env.ELIXIR_VERSION}}
+
+      - name: get, compile deps
+        run: mix do deps.get, deps.compile
+
+      - name: compile
+        run: mix compile --warnings-as-errors
+
+      - name: test
+        run: mix test --warnings-as-errors
+
+      - name: format
+        run: mix format --check-formatted
+
+      - name: credo
+        run: mix credo

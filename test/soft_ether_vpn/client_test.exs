@@ -13,23 +13,15 @@ defmodule SoftEtherVpn.ClientTest do
     end
 
     test "stop_vpnclient/0" do
-      assert String.contains?(Client.stop_vpnclient(), "stopped")
+      assert {:ok, collectable} = Client.stop_vpnclient()
+      assert String.contains?(collectable, "stopped")
     end
 
     test "stop_vpnclient/0 then start_vpnclient/0" do
-      assert String.contains?(Client.stop_vpnclient(), "stopped")
-      assert String.contains?(Client.start_vpnclient(), "started")
-    end
-
-    for f <- ["get_version", "list_account", "enable_remote", "disable_remote"] do
-      test "#{f}/0 available" do
-        apply(Client, :"#{unquote(f)}", [])
-      end
-    end
-
-    @tag :skip
-    test "get_account_status/1" do
-      Client.get_account_status("test")
+      {:ok, collectable} = Client.stop_vpnclient()
+      assert String.contains?(collectable, "stopped")
+      {:ok, collectable} = Client.start_vpnclient()
+      assert String.contains?(collectable, "started")
     end
   end
 
@@ -97,6 +89,30 @@ defmodule SoftEtherVpn.ClientTest do
 
     start_supervised!({Client, dir_path: execute_dir_path, config_file_path: config_file_path})
     assert File.exists?(Path.join(execute_dir_path, "custom.ini"))
-    assert String.contains?(Client.list_account(), "example.com:443")
+    {:ok, collectable} = Client.do_command("AccountGet test")
+    assert String.contains?(collectable, "example.com")
+  end
+
+  describe "command" do
+    setup %{tmp_dir: tmp_dir} do
+      execute_dir_path = Path.join(tmp_dir, "vpnclient")
+      config_file_path = Path.join(File.cwd!(), "test/support/fixtures/vpn_client.config")
+
+      start_supervised!({Client, dir_path: execute_dir_path, config_file_path: config_file_path})
+
+      :ok
+    end
+
+    for command <- ["VersionGet"] do
+      test "do_command/1 with #{command}" do
+        command = unquote(command)
+        assert {:ok, _collectable} = Client.do_command(command)
+      end
+    end
+
+    test "when vpnclient not started" do
+      {:ok, _collectable} = Client.stop_vpnclient()
+      assert {:error, _collectable} = Client.do_command("VersionGet")
+    end
   end
 end
