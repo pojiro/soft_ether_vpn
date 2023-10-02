@@ -23,7 +23,8 @@ defmodule SoftEtherVpn.MixProject do
   defp deps do
     [
       {:castore, "~> 0.1 or ~> 1.0"},
-      {:muontrap, "~> 1.0"}
+      {:muontrap, "~> 1.0"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 end
