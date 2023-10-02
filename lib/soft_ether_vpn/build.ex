@@ -76,8 +76,9 @@ defmodule SoftEtherVpn.Build do
     |> String.split("\n")
     # for backward compatibility
     |> Enum.map(&String.replace(&1, "i_read_and_agree_the_license_agreement:", "main:"))
-    |> Enum.reject(&String.contains?(&1, "CC="))
-    |> Enum.reject(&String.contains?(&1, "/cmd:Check"))
+    |> Enum.reject(fn line ->
+      String.contains?(line, "CC=") or String.contains?(line, "/cmd:Check")
+    end)
     |> Enum.join("\n")
     |> then(&File.write!(makefile_path, &1))
   end

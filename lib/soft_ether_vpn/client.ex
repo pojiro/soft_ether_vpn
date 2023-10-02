@@ -32,6 +32,7 @@ defmodule SoftEtherVpn.Client do
   # state
 
   defmodule State do
+    @moduledoc false
     defstruct dir_path: "", bin_path: "", cmd_path: ""
   end
 
